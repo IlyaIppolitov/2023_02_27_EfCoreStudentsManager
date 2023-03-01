@@ -243,5 +243,10 @@ namespace EfCoreStudentsManager
             await PutSubjectsToDataGrid();
             await PutVisitsToDataGrid();
         }
+
+        private async void buttonUpdate_Click(object sender, RoutedEventArgs e)
+        {
+            await RefreshAllTables();
+        }
     }
 }

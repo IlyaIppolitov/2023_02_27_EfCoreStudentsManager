@@ -33,6 +33,7 @@
                   CurrentCellChanged="datagridVisits_CurrentCellChanged"
                   CommandManager.PreviewCanExecute="datagridVisits_PreviewCanExecute" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch" 
                   />
+        <Button x:Name="buttonUpdate"  Grid.Column="1" Content="Обновить" Grid.Row="1" Height="33" Width="47" FontSize="8" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Click="buttonUpdate_Click"/>
 
 
     </Grid>
