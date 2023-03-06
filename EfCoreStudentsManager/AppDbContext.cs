@@ -22,5 +22,6 @@ namespace EfCoreStudentsManager
         public DbSet<Student> Students => Set<Student>();
         public DbSet<Visit> Visits => Set<Visit>();
         public DbSet<Subject> Subjects => Set<Subject>();
+        public DbSet<Group> Groups => Set<Group>();
     }
 }

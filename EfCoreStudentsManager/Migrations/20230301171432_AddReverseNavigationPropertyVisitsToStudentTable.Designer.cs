@@ -3,6 +3,7 @@ using System;
 using EfCoreStudentsManager;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -10,30 +11,13 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace EfCoreStudentsManager.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20230301171432_AddReverseNavigationPropertyVisitsToStudentTable")]
+    partial class AddReverseNavigationPropertyVisitsToStudentTable
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "6.0.14");
-
-            modelBuilder.Entity("EfCoreStudentsManager.Entities.Group", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("TEXT");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasColumnType("TEXT");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("Groups");
-                });
 
             modelBuilder.Entity("EfCoreStudentsManager.Entities.Student", b =>
                 {
@@ -48,16 +32,11 @@ namespace EfCoreStudentsManager.Migrations
                         .IsRequired()
                         .HasColumnType("TEXT");
 
-                    b.Property<Guid?>("GroupId")
-                        .HasColumnType("TEXT");
-
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasColumnType("TEXT");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("GroupId");
 
                     b.ToTable("Students");
                 });
@@ -101,19 +80,10 @@ namespace EfCoreStudentsManager.Migrations
                     b.ToTable("Visits");
                 });
 
-            modelBuilder.Entity("EfCoreStudentsManager.Entities.Student", b =>
-                {
-                    b.HasOne("EfCoreStudentsManager.Entities.Group", "Group")
-                        .WithMany("Students")
-                        .HasForeignKey("GroupId");
-
-                    b.Navigation("Group");
-                });
-
             modelBuilder.Entity("EfCoreStudentsManager.Entities.Visit", b =>
                 {
                     b.HasOne("EfCoreStudentsManager.Entities.Student", "Student")
-                        .WithMany("Visits")
+                        .WithMany()
                         .HasForeignKey("StudentId");
 
                     b.HasOne("EfCoreStudentsManager.Entities.Subject", "Subject")
@@ -123,16 +93,6 @@ namespace EfCoreStudentsManager.Migrations
                     b.Navigation("Student");
 
                     b.Navigation("Subject");
-                });
-
-            modelBuilder.Entity("EfCoreStudentsManager.Entities.Group", b =>
-                {
-                    b.Navigation("Students");
-                });
-
-            modelBuilder.Entity("EfCoreStudentsManager.Entities.Student", b =>
-                {
-                    b.Navigation("Visits");
                 });
 #pragma warning restore 612, 618
         }
