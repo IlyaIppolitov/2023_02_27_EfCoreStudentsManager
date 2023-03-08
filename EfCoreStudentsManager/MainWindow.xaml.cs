@@ -37,6 +37,12 @@ namespace EfCoreStudentsManager
         // Объявление и инициализация Семафора - используется для блокировки доступа к базе данных
         static SemaphoreSlim sem = new SemaphoreSlim(1, 1);
 
+        // Флаг загруженных исходных данный
+        bool _defaultData;
+
+        // Версия запроса поиска данных
+        int _queryVersion;
+
         public MainWindow()
         {            
             InitializeComponent();
@@ -51,10 +57,7 @@ namespace EfCoreStudentsManager
         // Загрузка всех dataGrid по факту загрузки основного окна
         private async void Window_Loaded(object sender, RoutedEventArgs e)
         {
-            await PutSubjectsToDataGrid();
-            await PutGroupsToDataGrid();
-            await PutStudentsToDataGrid();
-            await PutVisitsToDataGrid();
+            await RefreshAllTables();
             await UpdateComboBox();
         }
 
@@ -263,7 +266,6 @@ namespace EfCoreStudentsManager
                 catch (DbUpdateConcurrencyException ex) { MessageBox.Show("Ошибка! Данные были изменены с момента их загрузки в память!" + ex.Message); }
                 catch (DbUpdateException ex) { MessageBox.Show("Ошибка сохранения в базу данных: " + ex.Message); }
             });
-            
         }
 
         /// Отправка перечня студентов в DataGrid
@@ -350,10 +352,13 @@ namespace EfCoreStudentsManager
 
         private async Task RefreshAllTables()
         {
+            if (_defaultData == true) return;
+
             await PutSubjectsToDataGrid();
             await PutVisitsToDataGrid();
             await PutStudentsToDataGrid();
             await PutGroupsToDataGrid();
+            _defaultData = true;
         }
 
         private async void buttonUpdate_Click(object sender, RoutedEventArgs e)
@@ -363,8 +368,7 @@ namespace EfCoreStudentsManager
         
         //
         private async void datagridGroups_SelectionChanged(object sender, SelectionChangedEventArgs e)
-        {
-            
+        {            
             if (CurrentGroup is not null)
             {
                 tboxGroupName.Text = CurrentGroup.Name;
@@ -374,6 +378,7 @@ namespace EfCoreStudentsManager
                 await _db.Entry(CurrentGroup).Collection(it => it.Students).LoadAsync();
                 datagridStudents.ItemsSource = CurrentGroup.Students;
             }
+            _defaultData = false;
         }
 
         private async void datagridStudents_CellEditEnding(object sender, DataGridCellEditEndingEventArgs e)
@@ -384,10 +389,13 @@ namespace EfCoreStudentsManager
                 if (_db.Groups.Any(g => g.Name == groupName))
                 {
                     if (CurrentStudent is not null)
-                        CurrentStudent.Group = await _db.Groups.FindAsync(new Guid(_db.Groups.Where(g => g.Name == groupName).First().Id.ToString()));
+                        CurrentStudent.Group = await _db.Groups
+                            .FindAsync(new Guid(_db.Groups.Where(g => g.Name == groupName)
+                            .First().Id.ToString()));
                 }
                 await SaveChangesToDb();
             }
+            _defaultData = false;
         }
 
         // Отображение данных о студентах, посещавших занятия в феврале 2023г.
@@ -408,9 +416,11 @@ namespace EfCoreStudentsManager
                 datagridStudents.ItemsSource = await _db.Students
                     .Where(s => s.Visits.Any(v => v.Date >= startTime && v.Date < endTime))
                     .ToListAsync();
+
+            _defaultData = false;
         }
 
-        // Добавление нового студента
+        // Кнопка - Добавление нового студента
         private async void btnAddNewStudent_Click(object sender, RoutedEventArgs e)
         {
             var student = new Student()
@@ -456,6 +466,7 @@ namespace EfCoreStudentsManager
                 datagridVisits.ItemsSource = await _db.Visits
                     .Where(v => (v.Student.Id == CurrentStudent.Id)).ToListAsync();
             }
+            _defaultData = false;
         }
 
         // Кнопка - Сохраненние изменений в данных существующего студента
@@ -623,8 +634,17 @@ namespace EfCoreStudentsManager
             if (CurrentSubject is not null)
                 tboxSubjectName.Text = CurrentSubject.Name;
 
-            datagridVisits.ItemsSource = await _db.Visits
-                .Where(v => (v.Subject.Id == CurrentSubject.Id)).ToListAsync();
+            if (CurrentSubject is not null)
+            {
+                datagridVisits.ItemsSource = await _db.Visits
+                    .Where(v => (v.Subject!.Id == CurrentSubject!.Id)).ToListAsync();
+            }
+            else
+            {
+                datagridVisits.ItemsSource = null;
+            }
+
+            _defaultData = false;
         }
 
         // Кнопка - добавить новое посещение
@@ -652,7 +672,7 @@ namespace EfCoreStudentsManager
 
             await _db.Visits.AddAsync(visit);
             await SaveChangesToDb();
-            _visits.Add(visit);
+            _visits!.Add(visit);
             datagridVisits.SelectedItem = visit;
         }
 
@@ -695,6 +715,74 @@ namespace EfCoreStudentsManager
         {
             if (CurrentVisit is not null)
                 datepickerVisit.SelectedDate = CurrentVisit.Date;
+
+            _defaultData = false;
+        }
+
+        private async void textboxSearch_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            _queryVersion++;
+            if (textboxSearch.Text == "Поиск...") return;
+
+            if (string.IsNullOrWhiteSpace(textboxSearch.Text))
+            {
+                await RefreshAllTables();
+                return;
+            }
+
+            //Debouncing:
+            var savedVersion = _queryVersion;
+            await Task.Delay(TimeSpan.FromMilliseconds(1000));
+            if (savedVersion == _queryVersion)
+            {
+                await Search(textboxSearch.Text);
+                _queryVersion = 0;
+            }
+        }
+
+        private void textboxSearch_GotFocus(object sender, RoutedEventArgs e)
+        {
+            SelectAllTextBoxSearch();
+        }
+
+        private void textboxSearch_MouseUp(object sender, MouseButtonEventArgs e)
+        {
+            SelectAllTextBoxSearch();
+        }
+
+        public void SelectAllTextBoxSearch()
+        {
+            if (textboxSearch.Text == "Поиск...")
+            {
+                textboxSearch.SelectAll();
+            }
+        }
+
+        async Task Search(string textSnapshot)
+        {
+            var matchesStudents = await _db.Students
+                .Where(s => EF.Functions.Like(s.Name, $"%{textSnapshot}%"))
+                .ToListAsync();
+            datagridStudents.ItemsSource = matchesStudents;
+
+            var matchesSubjects = await _db.Subjects
+                .Where(s => s.Name.Contains(textSnapshot))
+                .ToListAsync();
+            datagridSubjects.ItemsSource = matchesSubjects;
+
+            var matchesGroups = await _db.Groups
+                .Where(g => g.Name.Contains(textSnapshot) ||
+                        g.Students!.Any(s => s.Name.Contains(textSnapshot)))
+                .ToListAsync();
+            datagridGroups.ItemsSource = matchesGroups;
+
+            var matchesVisits = await _db.Visits
+                .Where(v => (v.Subject!.Name.Contains(textSnapshot) ||
+                v.Student!.Name.Contains(textSnapshot)))
+                .ToListAsync();
+            datagridVisits.ItemsSource = matchesVisits;
+
+            _defaultData = false;
         }
     }
 }

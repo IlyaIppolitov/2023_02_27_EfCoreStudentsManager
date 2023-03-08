@@ -12,11 +12,12 @@
             <ColumnDefinition Width="4*"/>
         </Grid.ColumnDefinitions>
         <Grid.RowDefinitions>
+            <RowDefinition Height="50"/>
             <RowDefinition Height="1*"/>
             <RowDefinition Height="1*"/>
         </Grid.RowDefinitions>
 
-        <GroupBox Grid.Row="0" Grid.Column="0" Header="Студенты" VerticalAlignment="Top">
+        <GroupBox Grid.Row="1" Grid.Column="0" Header="Студенты" VerticalAlignment="Top">
             <DockPanel>
                 <StackPanel>
                     <DataGrid x:Name="datagridStudents" 
@@ -87,7 +88,7 @@
             </DockPanel>
         </GroupBox>
 
-        <GroupBox Grid.Row="1" Grid.ColumnSpan="1" Header="Посещения" VerticalAlignment="Top">
+        <GroupBox Grid.Row="2" Grid.ColumnSpan="1" Header="Посещения" VerticalAlignment="Top">
             <DockPanel>
                 <StackPanel>
                     <DataGrid x:Name="datagridVisits"
@@ -136,7 +137,7 @@
             </DockPanel>
         </GroupBox>
 
-        <GroupBox Grid.Column="1" Grid.Row="1" Header="Группа" VerticalAlignment="Top">
+        <GroupBox Grid.Column="1" Grid.Row="2" Header="Группа" VerticalAlignment="Top">
             <DockPanel>
                 <StackPanel>
                     <DataGrid
@@ -190,7 +191,7 @@
             </DockPanel>
         </GroupBox>
 
-        <GroupBox Grid.Column="1" Grid.Row="0" Header="Предметы"
+        <GroupBox Grid.Column="1" Grid.Row="1" Header="Предметы"
                   VerticalAlignment="Top">
             <DockPanel>
                 <StackPanel>
@@ -229,5 +230,14 @@
                 </StackPanel>
             </DockPanel>
         </GroupBox>
+        <TextBox x:Name="textboxSearch"
+                 Grid.Row="0" 
+                 Grid.ColumnSpan="2" 
+                 TextWrapping="Wrap" 
+                 Text="Поиск..." 
+                 Margin="10,10,10,10" 
+                 HorizontalContentAlignment="Stretch" 
+                 VerticalContentAlignment="Stretch" 
+                 TextChanged="textboxSearch_TextChanged" GotFocus="textboxSearch_GotFocus" MouseUp="textboxSearch_MouseUp"/>
     </Grid>
 </Window>
