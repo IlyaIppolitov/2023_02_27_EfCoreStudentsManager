@@ -498,12 +498,10 @@ namespace EfCoreStudentsManager
                 return;
             }
 
-            var student = _students.Where(s => s.Id == CurrentStudent.Id).First();
-
-            student.Name = tboxStudentName.Text;
-            student.Email = tboxStudentEmail.Text;
-            student.Birthday = datepickerStudent.SelectedDate.Value;
-            student.Group = (Group)comboboxStudentGroup.SelectedItem;
+            CurrentStudent.Name = tboxStudentName.Text;
+            CurrentStudent.Email = tboxStudentEmail.Text;
+            CurrentStudent.Birthday = datepickerStudent.SelectedDate.Value;
+            CurrentStudent.Group = (Group)comboboxStudentGroup.SelectedItem;
 
             await SaveChangesToDb();
             datagridStudents.Items.Refresh();
@@ -563,10 +561,8 @@ namespace EfCoreStudentsManager
                 return;
             }
 
-            var group = _groups.Where(g => g.Id == CurrentGroup.Id).First();
-
-            group.Name = tboxGroupName.Text;
-            group.CreatedAt = datepickerGroup.SelectedDate.Value;
+            CurrentGroup.Name = tboxGroupName.Text;
+            CurrentGroup.CreatedAt = datepickerGroup.SelectedDate.Value;
 
             await SaveChangesToDb();
             datagridGroups.Items.Refresh();
@@ -619,9 +615,7 @@ namespace EfCoreStudentsManager
                 return;
             }
 
-            var subject = _subjects.Where(s => s.Id == CurrentSubject.Id).First();
-
-            subject.Name = tboxSubjectName.Text;
+            CurrentSubject.Name = tboxSubjectName.Text;
 
             await SaveChangesToDb();
             datagridSubjects.Items.Refresh();
@@ -695,9 +689,7 @@ namespace EfCoreStudentsManager
                 return;
             }
 
-            var visit = _visits.Where(s => s.Id == CurrentVisit.Id).First();
-
-            visit.Date = datepickerVisit.SelectedDate.Value;
+            CurrentVisit.Date = datepickerVisit.SelectedDate.Value;
 
             await SaveChangesToDb();
             datagridVisits.Items.Refresh();
