@@ -22,7 +22,7 @@
                 <StackPanel>
                     <DataGrid x:Name="datagridStudents" 
                         AddingNewItem="datagridStudents_AddingNewItem"
-                        CurrentCellChanged="datagridStudents_CurrentCellChanged"
+                        CurrentCellChanged="CurrentCellChanged"
                         CommandManager.PreviewCanExecute="datagridStudent_PreviewCanExecute"
                         CellEditEnding="datagridStudents_CellEditEnding"
                         AutoGenerateColumns="False"
@@ -38,7 +38,10 @@
                                 Width="SizeToHeader"/>
                             <DataGridTextColumn Binding="{Binding Email}"
                                 Header="Почта" 
-                                Width="120"/>
+                                Width="100"/>
+                            <DataGridTextColumn Binding="{Binding Phone}"
+                                Header="Телефон" 
+                                Width="100"/>
                             <DataGridTextColumn Binding="{Binding Group}"
                                 Header="Группа" 
                                 Width="SizeToHeader"
@@ -52,11 +55,15 @@
                     <WrapPanel Orientation="Horizontal">
                         <StackPanel Orientation="Horizontal">
                             <Label>Имя:</Label>
-                            <TextBox x:Name="tboxStudentName" TextWrapping="Wrap" Text="" Width="120" Margin="5,0,0,5"></TextBox>
+                            <TextBox x:Name="tboxStudentName" TextWrapping="Wrap" Text="" Width="100" Margin="5,0,0,5"></TextBox>
                         </StackPanel>
                         <StackPanel Orientation="Horizontal">
                             <Label>Email:</Label>
-                            <TextBox x:Name="tboxStudentEmail" TextWrapping="Wrap" Text="" Width="120" Margin="5,0,0,5"></TextBox>
+                            <TextBox x:Name="tboxStudentEmail" TextWrapping="Wrap" Text="" Width="100" Margin="5,0,0,5"></TextBox>
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal">
+                            <Label>Phone:</Label>
+                            <TextBox x:Name="tboxStudentPhone" TextWrapping="Wrap" Text="" Width="100" Margin="5,0,0,5"></TextBox>
                         </StackPanel>
                         <StackPanel Orientation="Horizontal">
                             <Label>Дата рождения:</Label>
@@ -92,8 +99,8 @@
             <DockPanel>
                 <StackPanel>
                     <DataGrid x:Name="datagridVisits"
-                        AddingNewItem="datagridVisits_AddingNewItem"                  
-                        CurrentCellChanged="datagridVisits_CurrentCellChanged"
+                        AddingNewItem="datagridVisits_AddingNewItem"
+                        CurrentCellChanged="CurrentCellChanged"
                         CommandManager.PreviewCanExecute="datagridVisits_PreviewCanExecute" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch" 
                         AutoGenerateColumns="False"
                         CanUserAddRows="False"
@@ -142,7 +149,7 @@
                 <StackPanel>
                     <DataGrid
                         x:Name="datagridGroups"
-                        CurrentCellChanged="datagridGroups_CurrentCellChanged"
+                        CurrentCellChanged="CurrentCellChanged"
                         CommandManager.PreviewCanExecute="datagridGroup_PreviewCanExecute"
                         AddingNewItem="datagridGroups_AddingNewItem" 
                         SelectionChanged="datagridGroups_SelectionChanged"
@@ -196,8 +203,8 @@
             <DockPanel>
                 <StackPanel>
                     <DataGrid x:Name="datagridSubjects"
-                    AddingNewItem="datagridSubjects_AddingNewItem" 
-                    CurrentCellChanged="datagridSubjects_CurrentCellChanged"
+                    AddingNewItem="datagridSubjects_AddingNewItem"
+                    CurrentCellChanged="CurrentCellChanged"
                     CommandManager.PreviewCanExecute="datagridSubject_PreviewCanExecute"
                         AutoGenerateColumns="False"
                         CanUserAddRows="False"
@@ -238,6 +245,10 @@
                  Margin="10,10,10,10" 
                  HorizontalContentAlignment="Stretch" 
                  VerticalContentAlignment="Stretch" 
-                 TextChanged="textboxSearch_TextChanged" GotFocus="textboxSearch_GotFocus" MouseUp="textboxSearch_MouseUp"/>
+                 TextChanged="textboxSearch_TextChanged" 
+                 GotFocus="textboxSearch_GotFocus" 
+                 MouseUp="textboxSearch_MouseUp"
+                 >            
+        </TextBox>
     </Grid>
 </Window>

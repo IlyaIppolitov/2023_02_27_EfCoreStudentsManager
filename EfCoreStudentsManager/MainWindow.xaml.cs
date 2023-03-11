@@ -37,6 +37,8 @@ namespace EfCoreStudentsManager
         // Объявление и инициализация Семафора - используется для блокировки доступа к базе данных
         static SemaphoreSlim sem = new SemaphoreSlim(1, 1);
 
+        static Debouncer debouncer = new Debouncer();
+
         // Флаг загруженных исходных данный
         bool _defaultData;
 
@@ -100,7 +102,8 @@ namespace EfCoreStudentsManager
             {
                 Id = Guid.NewGuid(),
                 Name = "",
-                Email = ""
+                Email = "",
+                Phone = ""
             };
 
             await _db.Students.AddAsync(student);
@@ -230,22 +233,7 @@ namespace EfCoreStudentsManager
         }
 
         // Обрабочики изменения ячейки в каждой из таблиц
-        private async void datagridStudents_CurrentCellChanged(object sender, EventArgs e)
-        {
-            await SaveChangesToDb();
-        }
-
-        private async void datagridSubjects_CurrentCellChanged(object sender, EventArgs e)
-        {
-            await SaveChangesToDb();
-        }
-
-        private async void datagridVisits_CurrentCellChanged(object sender, EventArgs e)
-        {
-            await SaveChangesToDb();
-        }
-
-        private async void datagridGroups_CurrentCellChanged(object sender, EventArgs e)
+        private async void CurrentCellChanged(object sender, EventArgs e)
         {
             await SaveChangesToDb();
         }
@@ -256,7 +244,6 @@ namespace EfCoreStudentsManager
         {
             await Task.Run(async () =>
             {
-
                 try
                 {
                     await sem.WaitAsync();
@@ -460,6 +447,7 @@ namespace EfCoreStudentsManager
             {
                 tboxStudentName.Text = CurrentStudent.Name;
                 tboxStudentEmail.Text = CurrentStudent.Email;
+                tboxStudentPhone.Text = CurrentStudent.Phone;
                 datepickerStudent.SelectedDate = CurrentStudent.Birthday;
                 comboboxStudentGroup.SelectedItem = CurrentStudent.Group;
 
@@ -500,6 +488,7 @@ namespace EfCoreStudentsManager
 
             CurrentStudent.Name = tboxStudentName.Text;
             CurrentStudent.Email = tboxStudentEmail.Text;
+            CurrentStudent.Phone = tboxStudentPhone.Text;
             CurrentStudent.Birthday = datepickerStudent.SelectedDate.Value;
             CurrentStudent.Group = (Group)comboboxStudentGroup.SelectedItem;
 
@@ -711,9 +700,9 @@ namespace EfCoreStudentsManager
             _defaultData = false;
         }
 
+        // Обработчик измененения значения строки поиска
         private async void textboxSearch_TextChanged(object sender, TextChangedEventArgs e)
         {
-            _queryVersion++;
             if (textboxSearch.Text == "Поиск...") return;
 
             if (string.IsNullOrWhiteSpace(textboxSearch.Text))
@@ -722,13 +711,10 @@ namespace EfCoreStudentsManager
                 return;
             }
 
-            //Debouncing:
-            var savedVersion = _queryVersion;
-            await Task.Delay(TimeSpan.FromMilliseconds(1000));
-            if (savedVersion == _queryVersion)
+            // Ожидаение исполнения debouncer
+            if (await debouncer.IsDebounced())
             {
                 await Search(textboxSearch.Text);
-                _queryVersion = 0;
             }
         }
 
@@ -747,13 +733,24 @@ namespace EfCoreStudentsManager
             if (textboxSearch.Text == "Поиск...")
             {
                 textboxSearch.SelectAll();
+                textboxSearch.Focus();
             }
         }
 
+        // Поиск
         async Task Search(string textSnapshot)
         {
-            var matchesStudents = await _db.Students
-                .Where(s => EF.Functions.Like(s.Name, $"%{textSnapshot}%"))
+            // Получаем возможность поиска без учета регистра, но!:
+            // 1. Потребление памяти, 2. Перфоманс - ухудшаем
+            //var allStudents = await _db.Students.ToListAsync(); // O(n)
+            //var matchesStudents = allStudents // O(n)
+                //.Where(s => s.Name.Contains(textSnapshot, StringComparison.CurrentCultureIgnoreCase))
+                //.ToList();
+
+            var matchesStudents = await _db.Students // O(1)
+                .Where(s => EF.Functions.Like(s.Name, $"%{textSnapshot}%")  || 
+                            s.Phone.Contains(textSnapshot)                  ||
+                            s.Email.Contains(textSnapshot))
                 .ToListAsync();
             datagridStudents.ItemsSource = matchesStudents;
 

@@ -41,6 +41,16 @@ namespace EfCoreStudentsManager
             ;
         }
 
+        protected override void OnModelCreating(ModelBuilder modelBuilder)
+        {
+            base.OnModelCreating(modelBuilder);
+            modelBuilder.Entity<Student>(e =>
+            {
+                e.Property(o => o.Name)
+                .HasColumnType("TEXT COLLATE NOCASE");
+            });
+        }
+
         public DbSet<Student> Students => Set<Student>();
         public DbSet<Visit> Visits => Set<Visit>();
         public DbSet<Subject> Subjects => Set<Subject>();
