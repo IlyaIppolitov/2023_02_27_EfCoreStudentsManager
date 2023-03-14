@@ -37,13 +37,12 @@ namespace EfCoreStudentsManager
         // Объявление и инициализация Семафора - используется для блокировки доступа к базе данных
         static SemaphoreSlim sem = new SemaphoreSlim(1, 1);
 
-        static Debouncer debouncer = new Debouncer();
+        //static Debouncer debouncer = new Debouncer();
+        DebounceDispatcher searchDebouncer = new();
+
 
         // Флаг загруженных исходных данный
         bool _defaultData;
-
-        // Версия запроса поиска данных
-        int _queryVersion;
 
         public MainWindow()
         {            
@@ -101,9 +100,7 @@ namespace EfCoreStudentsManager
             var student = new Student()
             {
                 Id = Guid.NewGuid(),
-                Name = "",
-                Email = "",
-                Phone = ""
+                Name = ""
             };
 
             await _db.Students.AddAsync(student);
@@ -414,7 +411,7 @@ namespace EfCoreStudentsManager
             {
                 Id = Guid.NewGuid(),
                 Name = tboxStudentName.Text,
-                Email = tboxStudentEmail.Text,
+                Email = new ValueObjects.Email(""),
                 Birthday = datepickerStudent.SelectedDate.GetValueOrDefault(),
                 Group = (Group) comboboxStudentGroup.SelectedItem,
             };
@@ -446,8 +443,9 @@ namespace EfCoreStudentsManager
             if (CurrentStudent is not null)
             {
                 tboxStudentName.Text = CurrentStudent.Name;
-                tboxStudentEmail.Text = CurrentStudent.Email;
-                tboxStudentPhone.Text = CurrentStudent.Phone;
+                tboxStudentEmail.Text = CurrentStudent.Email.Value;
+                tboxStudentPhone.Text = CurrentStudent.Phone.Value;
+                tboxStudentPassport.Text = CurrentStudent.Passport is null ? "" : CurrentStudent.Passport.Value;
                 datepickerStudent.SelectedDate = CurrentStudent.Birthday;
                 comboboxStudentGroup.SelectedItem = CurrentStudent.Group;
 
@@ -485,12 +483,16 @@ namespace EfCoreStudentsManager
                 MessageBox.Show("Выберете группу для студента!");
                 return;
             }
-
-            CurrentStudent.Name = tboxStudentName.Text;
-            CurrentStudent.Email = tboxStudentEmail.Text;
-            CurrentStudent.Phone = tboxStudentPhone.Text;
-            CurrentStudent.Birthday = datepickerStudent.SelectedDate.Value;
-            CurrentStudent.Group = (Group)comboboxStudentGroup.SelectedItem;
+            try
+            {
+                CurrentStudent.Name = tboxStudentName.Text;
+                CurrentStudent.Email = new ValueObjects.Email(tboxStudentEmail.Text);
+                CurrentStudent.Phone = new ValueObjects.Phone(tboxStudentPhone.Text);
+                CurrentStudent.Passport = new ValueObjects.Passport(tboxStudentPassport.Text);
+                CurrentStudent.Birthday = datepickerStudent.SelectedDate.Value;
+                CurrentStudent.Group = (Group)comboboxStudentGroup.SelectedItem;
+            }
+            catch (ArgumentException exc) { MessageBox.Show(exc.Message);}
 
             await SaveChangesToDb();
             datagridStudents.Items.Refresh();
@@ -711,11 +713,14 @@ namespace EfCoreStudentsManager
                 return;
             }
 
-            // Ожидаение исполнения debouncer
-            if (await debouncer.IsDebounced())
-            {
-                await Search(textboxSearch.Text);
-            }
+            // Ожидаение исполнения debouncer - новая версия
+            await searchDebouncer.Debounce(() => Search(textboxSearch.Text));
+
+            // Ожидаение исполнения debouncer - старая версия
+            //if (await debouncer.IsDebounced())
+            //{
+            //    await Search(textboxSearch.Text);
+            //}
         }
 
         private void textboxSearch_GotFocus(object sender, RoutedEventArgs e)
@@ -749,8 +754,8 @@ namespace EfCoreStudentsManager
 
             var matchesStudents = await _db.Students // O(1)
                 .Where(s => EF.Functions.Like(s.Name, $"%{textSnapshot}%")  || 
-                            s.Phone.Contains(textSnapshot)                  ||
-                            s.Email.Contains(textSnapshot))
+                            s.Phone.Value.Contains(textSnapshot)                  ||
+                            s.Email.Value.Contains(textSnapshot))
                 .ToListAsync();
             datagridStudents.ItemsSource = matchesStudents;
 

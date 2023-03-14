@@ -49,6 +49,18 @@ namespace EfCoreStudentsManager
                 e.Property(o => o.Name)
                 .HasColumnType("TEXT COLLATE NOCASE");
             });
+
+            modelBuilder.Entity<Student>()
+                .OwnsOne(s => s.Phone, builder => builder.Property(it => it.Value)
+                                .HasColumnName("Phone")
+            );
+
+            modelBuilder.Entity<Student>()
+                .OwnsOne(s => s.Email, builder =>
+                            builder.Property(it => it.Value)
+                                .HasColumnName("Email")
+            );
+
         }
 
         public DbSet<Student> Students => Set<Student>();

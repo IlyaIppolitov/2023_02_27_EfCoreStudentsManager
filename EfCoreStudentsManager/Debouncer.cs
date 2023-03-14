@@ -8,6 +8,22 @@ using System.Threading.Tasks;
 
 namespace EfCoreStudentsManager
 {
+    public class DebounceDispatcher
+    {
+        private int queryVersion = 0;
+        public async Task Debounce(Func<Task> func, int timeOutms = 1000)
+        {
+            queryVersion++;
+            var savedVersion = queryVersion;
+
+            await Task.Delay(TimeSpan.FromMilliseconds(timeOutms));
+
+            if (savedVersion == queryVersion) await func();
+        }
+    }
+
+
+
     public class Debouncer
     {
         // Конструктор с указанием параметров

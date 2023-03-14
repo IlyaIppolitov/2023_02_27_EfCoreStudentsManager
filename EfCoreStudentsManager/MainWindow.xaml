@@ -38,10 +38,13 @@
                                 Width="SizeToHeader"/>
                             <DataGridTextColumn Binding="{Binding Email}"
                                 Header="Почта" 
-                                Width="100"/>
+                                Width="90"/>
                             <DataGridTextColumn Binding="{Binding Phone}"
                                 Header="Телефон" 
-                                Width="100"/>
+                                Width="90"/>
+                            <DataGridTextColumn Binding="{Binding Passport}"
+                                Header="Паспорт #" 
+                                Width="90"/>
                             <DataGridTextColumn Binding="{Binding Group}"
                                 Header="Группа" 
                                 Width="SizeToHeader"
@@ -64,6 +67,10 @@
                         <StackPanel Orientation="Horizontal">
                             <Label>Phone:</Label>
                             <TextBox x:Name="tboxStudentPhone" TextWrapping="Wrap" Text="" Width="100" Margin="5,0,0,5"></TextBox>
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal">
+                            <Label>Паспорт:</Label>
+                            <TextBox x:Name="tboxStudentPassport" TextWrapping="Wrap" Text="" Width="100" Margin="5,0,0,5"></TextBox>
                         </StackPanel>
                         <StackPanel Orientation="Horizontal">
                             <Label>Дата рождения:</Label>
