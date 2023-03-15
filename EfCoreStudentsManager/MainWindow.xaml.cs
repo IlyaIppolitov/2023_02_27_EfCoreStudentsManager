@@ -445,7 +445,8 @@ namespace EfCoreStudentsManager
                 tboxStudentName.Text = CurrentStudent.Name;
                 tboxStudentEmail.Text = CurrentStudent.Email.Value;
                 tboxStudentPhone.Text = CurrentStudent.Phone.Value;
-                tboxStudentPassport.Text = CurrentStudent.Passport is null ? "" : CurrentStudent.Passport.Value;
+                tboxStudentPassport.Text = CurrentStudent.Passport?.Value ?? "";
+                //tboxStudentPassport.Text = CurrentStudent.Passport is null ? "" : CurrentStudent.Passport.Value;
                 datepickerStudent.SelectedDate = CurrentStudent.Birthday;
                 comboboxStudentGroup.SelectedItem = CurrentStudent.Group;
 
