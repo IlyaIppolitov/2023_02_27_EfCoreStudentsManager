@@ -60,6 +60,12 @@ namespace EfCoreStudentsManager
         {
             await RefreshAllTables();
             await UpdateComboBox();
+
+            //await _db.Students.AddRangeAsync(Enumerable.Range(1, 3000).Select(number => new Student()
+            //{
+            //    // TODO Заполнить данные!
+            //}));
+            //await SaveChangesToDb();
         }
 
         // Инициализация текущего выбранного студента/предмета/посещения в datagrid
@@ -176,6 +182,7 @@ namespace EfCoreStudentsManager
                 await SaveChangesToDb();
                 e.CanExecute = true;
                 datagridVisits.Items.Refresh();
+                datagridGroups.Items.Refresh();
             }
         }
 
@@ -232,24 +239,21 @@ namespace EfCoreStudentsManager
         // Обрабочики изменения ячейки в каждой из таблиц
         private async void CurrentCellChanged(object sender, EventArgs e)
         {
-            await SaveChangesToDb();
+            //await SaveChangesToDb();
         }
 
 
         /// Сохранение изменений в базу данных
         private async Task SaveChangesToDb()
         {
-            await Task.Run(async () =>
+            try
             {
-                try
-                {
-                    await sem.WaitAsync();
-                    await _db.SaveChangesAsync();
-                    sem.Release();
-                }
-                catch (DbUpdateConcurrencyException ex) { MessageBox.Show("Ошибка! Данные были изменены с момента их загрузки в память!" + ex.Message); }
-                catch (DbUpdateException ex) { MessageBox.Show("Ошибка сохранения в базу данных: " + ex.Message); }
-            });
+                await sem.WaitAsync();
+                await _db.SaveChangesAsync();
+                sem.Release();
+            }
+            catch (DbUpdateConcurrencyException ex) { MessageBox.Show("Ошибка! Данные были изменены с момента их загрузки в память!" + ex.Message); }
+            catch (DbUpdateException ex) { MessageBox.Show("Ошибка сохранения в базу данных: " + ex.Message); }
         }
 
         /// Отправка перечня студентов в DataGrid
@@ -407,19 +411,27 @@ namespace EfCoreStudentsManager
         // Кнопка - Добавление нового студента
         private async void btnAddNewStudent_Click(object sender, RoutedEventArgs e)
         {
-            var student = new Student()
+            try
             {
+                var student = new Student()
+                {
                 Id = Guid.NewGuid(),
                 Name = tboxStudentName.Text,
-                Email = new ValueObjects.Email(""),
+                Email = new ValueObjects.Email(tboxStudentEmail.Text),
+                Phone = new ValueObjects.Phone(tboxStudentPhone.Text),
+                Passport = new ValueObjects.Passport(tboxStudentPassport.Text),
                 Birthday = datepickerStudent.SelectedDate.GetValueOrDefault(),
                 Group = (Group) comboboxStudentGroup.SelectedItem,
-            };
+                };
 
-            await _db.Students.AddAsync(student);
-            await SaveChangesToDb();
-            _students.Add(student);
-            datagridStudents.SelectedItem = student;
+                await _db.Students.AddAsync(student);
+                await SaveChangesToDb();
+                _students.Add(student);
+                datagridStudents.SelectedItem = student;
+            }
+            catch (ArgumentException exc) { MessageBox.Show(exc.Message); }
+
+            datagridGroups.Items.Refresh();
             //await PutStudentsToDataGrid();
             // Хочется так, но так нельзя!
             //(datagridStudents.ItemsSource as List<Student>).Add(student);
