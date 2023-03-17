@@ -55,6 +55,18 @@
                                 IsReadOnly="True"/>
                         </DataGrid.Columns>
                     </DataGrid>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Button x:Name="btnPrevStudentsPage" Grid.Column="0"
+                                Content="Предыдущая страница"
+                                Margin="1,1,1,1" Click="btnPrevStudentsPage_Click"></Button>
+                        <Button x:Name="btnNextStudentsPage" Grid.Column="1"
+                                Content="Следующая страница"
+                                Margin="1,1,1,1" Click="btnNextStudentsPage_Click"></Button>
+                    </Grid>
                     <WrapPanel Orientation="Horizontal">
                         <StackPanel Orientation="Horizontal">
                             <Label>Имя:</Label>
@@ -87,6 +99,7 @@
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*"/>
                             <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
                         </Grid.ColumnDefinitions>
                         <Button x:Name="btnSaveChangesToStudent" Grid.Column="0"
                                 Content="Сохранить изменения" Click="btnSaveChangesToStudent_Click"
@@ -94,10 +107,10 @@
                         <Button x:Name="btnAddNewStudent" Grid.Column="1"
                                 Content="Добавить нового" Click="btnAddNewStudent_Click"
                                 Margin="2,2,2,2"></Button>
-                    </Grid>
-                    <Button x:Name="btnShowAllStudents"
+                        <Button x:Name="btnShowAllStudents" Grid.Column="2"
                             Content="Показать всех студентов!"
                             Margin="2,2,2,2" Click="btnShowAllStudents_Click"></Button>
+                    </Grid>
                 </StackPanel>
             </DockPanel>
         </GroupBox>

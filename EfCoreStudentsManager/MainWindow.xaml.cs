@@ -18,6 +18,7 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
+using System.Xml.Linq;
 
 namespace EfCoreStudentsManager
 {
@@ -34,11 +35,19 @@ namespace EfCoreStudentsManager
         private ObservableCollection<Visit>? _visits;
         private ObservableCollection<Subject>? _subjects;
 
+        // Количество студентов на одной странице
+        private const int _studentsPerPage = 3;
+        private int _studentsPageIndex = 0;
+
+        private int _studentsCount = 0;
+
         // Объявление и инициализация Семафора - используется для блокировки доступа к базе данных
         static SemaphoreSlim sem = new SemaphoreSlim(1, 1);
 
         //static Debouncer debouncer = new Debouncer();
         DebounceDispatcher searchDebouncer = new();
+
+        SearchMode _currentSearchMode = 0;
 
 
         // Флаг загруженных исходных данный
@@ -58,6 +67,7 @@ namespace EfCoreStudentsManager
         // Загрузка всех dataGrid по факту загрузки основного окна
         private async void Window_Loaded(object sender, RoutedEventArgs e)
         {
+            _studentsCount = await _db.Students.CountAsync();
             await RefreshAllTables();
             await UpdateComboBox();
 
@@ -186,7 +196,7 @@ namespace EfCoreStudentsManager
             }
         }
 
-        // Обработчик удаления строки в datagridStudents
+        // Обработчик удаления строки в datagridGroup
         private async void datagridGroup_PreviewCanExecute(object sender, CanExecuteRoutedEventArgs e)
         {
 
@@ -254,28 +264,71 @@ namespace EfCoreStudentsManager
             }
             catch (DbUpdateConcurrencyException ex) { MessageBox.Show("Ошибка! Данные были изменены с момента их загрузки в память!" + ex.Message); }
             catch (DbUpdateException ex) { MessageBox.Show("Ошибка сохранения в базу данных: " + ex.Message); }
+            _studentsCount = await _db.Students.CountAsync();
         }
 
         /// Отправка перечня студентов в DataGrid
-        private async Task PutStudentsToDataGrid()
+        private async Task PutStudentsToDataGrid(SearchMode searchMode = SearchMode.NoSearch)
         {
+            CheckChangeOfSearchMode(searchMode);
+
             await Task.Run(async () =>
             {
                 try
                 {
+                    var students = _db.Students.AsQueryable();
+
+                    switch (searchMode)
+                    {
+                        case SearchMode.SearchByTextBox:
+                            var textSnapshot = string.Empty;
+                            Dispatcher.Invoke(() => textSnapshot = textboxSearch.Text);
+                            students = students.Where(s => EF.Functions.Like(s.Name, $"%{textSnapshot}%") ||
+                            s.Phone.Value.Contains(textSnapshot) ||
+                            s.Email.Value.Contains(textSnapshot));
+                            _studentsCount = await students.CountAsync();
+                            break;
+
+                        case SearchMode.SearchByGroup:
+                            Group? cg = Dispatcher.Invoke(new Func<Group?>(() => { return CurrentGroup; }));
+                            students = students.Where(s => s.Group == cg);
+                            _studentsCount = await students.CountAsync();
+                            break;
+
+                        case SearchMode.NoSearch:
+                            break;
+
+                        default:
+                            break;
+                    }
+
+                    students = students
+                        .Include(s => s.Visits)
+                        .Include(s => s.Group)
+                        .OrderBy(s => s.Name)
+                            .ThenBy(s => s.Birthday)
+                        .Skip(_studentsPageIndex * _studentsPerPage)
+                        .Take(_studentsPerPage);
+
                     await sem.WaitAsync();
-                    var students = await _db.Students
-                    .Include(s => s.Visits)
-                    .Include(s => s.Group)
-                    .ToListAsync();
+                    _students = new ObservableCollection<Student>(students.ToList());
                     sem.Release();
-                    _students = new ObservableCollection<Student>(students);
                     Dispatcher.Invoke(() =>  datagridStudents.ItemsSource = _students);
+                    Dispatcher.Invoke(() => btnPrevStudentsPage.IsEnabled = _studentsPageIndex > 0);
+                    Dispatcher.Invoke(() => btnNextStudentsPage.IsEnabled = _studentsPageIndex < Math.Ceiling((double)_studentsCount / _studentsPerPage) - 1);
                 }
                 catch (SqliteException ex) { MessageBox.Show("Отсутствует необходимая таблица для отображения\n" + ex.Message); }
                 catch (ArgumentNullException ex) { MessageBox.Show("Отсутствует необходимая таблица для отображения\n" + ex.Message); }
 
             });
+        }
+
+        private void CheckChangeOfSearchMode(SearchMode searchMode)
+        {
+            if (_currentSearchMode == searchMode) return;
+            
+            _studentsPageIndex = 0;
+            _currentSearchMode = searchMode;
         }
 
         /// Отправка перечня предметов в DataGrid
@@ -362,9 +415,11 @@ namespace EfCoreStudentsManager
                 tboxGroupName.Text = CurrentGroup.Name;
                 datepickerGroup.SelectedDate = CurrentGroup.CreatedAt;
 
+                await PutStudentsToDataGrid(SearchMode.SearchByGroup);
+
                 //ленивая загрузка студентов группы!
-                await _db.Entry(CurrentGroup).Collection(it => it.Students).LoadAsync();
-                datagridStudents.ItemsSource = CurrentGroup.Students;
+                //await _db.Entry(CurrentGroup).Collection(it => it.Students).LoadAsync();
+                //datagridStudents.ItemsSource = CurrentGroup.Students;
             }
             _defaultData = false;
         }
@@ -427,6 +482,7 @@ namespace EfCoreStudentsManager
                 await _db.Students.AddAsync(student);
                 await SaveChangesToDb();
                 _students.Add(student);
+                btnNextStudentsPage.IsEnabled = _studentsPageIndex < Math.Ceiling((double)_studentsCount / _studentsPerPage) - 1;
                 datagridStudents.SelectedItem = student;
             }
             catch (ArgumentException exc) { MessageBox.Show(exc.Message); }
@@ -755,22 +811,12 @@ namespace EfCoreStudentsManager
             }
         }
 
+
+
         // Поиск
         async Task Search(string textSnapshot)
         {
-            // Получаем возможность поиска без учета регистра, но!:
-            // 1. Потребление памяти, 2. Перфоманс - ухудшаем
-            //var allStudents = await _db.Students.ToListAsync(); // O(n)
-            //var matchesStudents = allStudents // O(n)
-                //.Where(s => s.Name.Contains(textSnapshot, StringComparison.CurrentCultureIgnoreCase))
-                //.ToList();
-
-            var matchesStudents = await _db.Students // O(1)
-                .Where(s => EF.Functions.Like(s.Name, $"%{textSnapshot}%")  || 
-                            s.Phone.Value.Contains(textSnapshot)                  ||
-                            s.Email.Value.Contains(textSnapshot))
-                .ToListAsync();
-            datagridStudents.ItemsSource = matchesStudents;
+            await PutStudentsToDataGrid(SearchMode.SearchByTextBox);
 
             var matchesSubjects = await _db.Subjects
                 .Where(s => s.Name.Contains(textSnapshot))
@@ -790,6 +836,21 @@ namespace EfCoreStudentsManager
             datagridVisits.ItemsSource = matchesVisits;
 
             _defaultData = false;
+        }
+
+        private async void btnPrevStudentsPage_Click(object sender, RoutedEventArgs e)
+        {
+            if (_studentsPageIndex == 0) return;
+            _studentsPageIndex--;
+            await PutStudentsToDataGrid(_currentSearchMode);
+
+        }
+
+        private async void btnNextStudentsPage_Click(object sender, RoutedEventArgs e)
+        {
+            if (_studentsPageIndex > _studentsCount / _studentsPerPage - 1) return;
+            _studentsPageIndex++;
+            await PutStudentsToDataGrid(_currentSearchMode);
         }
     }
 }
