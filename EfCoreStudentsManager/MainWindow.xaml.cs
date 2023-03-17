@@ -286,13 +286,11 @@ namespace EfCoreStudentsManager
                             students = students.Where(s => EF.Functions.Like(s.Name, $"%{textSnapshot}%") ||
                             s.Phone.Value.Contains(textSnapshot) ||
                             s.Email.Value.Contains(textSnapshot));
-                            _studentsCount = await students.CountAsync();
                             break;
 
                         case SearchMode.SearchByGroup:
                             Group? cg = Dispatcher.Invoke(new Func<Group?>(() => { return CurrentGroup; }));
                             students = students.Where(s => s.Group == cg);
-                            _studentsCount = await students.CountAsync();
                             break;
 
                         case SearchMode.NoSearch:
@@ -301,6 +299,7 @@ namespace EfCoreStudentsManager
                         default:
                             break;
                     }
+                    _studentsCount = await students.CountAsync();
 
                     students = students
                         .Include(s => s.Visits)
@@ -816,6 +815,24 @@ namespace EfCoreStudentsManager
         // Поиск
         async Task Search(string textSnapshot)
         {
+            // Получаем возможность поиска без учета регистра, но!:
+            // 1. Потребление памяти, 2. Перфоманс - ухудшаем
+            //var allStudents = await _db.Students.ToListAsync(); // O(n)
+            //var matchesStudents = allStudents // O(n)
+            //.Where(s => s.Name.Contains(textSnapshot, StringComparison.CurrentCultureIgnoreCase))
+            //.ToList();
+
+            //Func<Student, bool> searchFunc = s => s.Name.Contains(textSnapshot) ||
+            //                s.Phone.Value.Contains(textSnapshot) ||
+            //                s.Email.Value.Contains(textSnapshot);
+
+            //var matchesStudents = await _db.Students // O(1)
+            //    .Where(s => EF.Functions.Like(s.Name, $"%{textSnapshot}%")  || 
+            //                s.Phone.Value.Contains(textSnapshot)                  ||
+            //                s.Email.Value.Contains(textSnapshot))
+            //    .ToListAsync();
+            //datagridStudents.ItemsSource = matchesStudents;
+
             await PutStudentsToDataGrid(SearchMode.SearchByTextBox);
 
             var matchesSubjects = await _db.Subjects
