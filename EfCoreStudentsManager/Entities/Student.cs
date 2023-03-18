@@ -13,7 +13,7 @@ namespace EfCoreStudentsManager.Entities
     [Index(nameof(Name), nameof(Phone), nameof(Email))]
     public class Student
     {
-        public Guid Id { get; init; }
+        public Guid Id { get; set; }
         public string Name { get; set; }
         public DateTime Birthday { get; set; }
         public Email? Email { get; set; }

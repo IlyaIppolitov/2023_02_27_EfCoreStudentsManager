@@ -59,4 +59,9 @@ namespace EfCoreStudentsManager.ValueObjects
             return !Equals(left, right);
         }
     }
+
+    public class Passport_Value : Passport
+    {
+        public Passport_Value(string value) : base (value) { }
+    }
 }

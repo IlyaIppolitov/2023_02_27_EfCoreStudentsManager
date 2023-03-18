@@ -1,24 +1,17 @@
-﻿using EfCoreStudentsManager.Entities;
+﻿using Dapper;
+using EfCoreStudentsManager.Entities;
+using EfCoreStudentsManager.ValueObjects;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using System;
-using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using System.ComponentModel;
+using System.Data;
 using System.Linq;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
 using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Navigation;
-using System.Windows.Shapes;
-using System.Xml.Linq;
 
 namespace EfCoreStudentsManager
 {
@@ -49,12 +42,20 @@ namespace EfCoreStudentsManager
 
         SearchMode _currentSearchMode = 0;
 
+        StudentsRepository studentsRepository= new StudentsRepository();
+
 
         // Флаг загруженных исходных данный
         bool _defaultData;
 
         public MainWindow()
-        {            
+        {
+            SqlMapper.AddTypeHandler(new MySqlGuidTypeHandler());
+            SqlMapper.AddTypeHandler(new MySqlEmailTypeHandler());
+            SqlMapper.AddTypeHandler(new MySqlPhoneTypeHandler()); 
+            SqlMapper.AddTypeHandler(new MySqlPassportTypeHandler());
+            SqlMapper.RemoveTypeMap(typeof(Guid));
+            SqlMapper.RemoveTypeMap(typeof(Guid?));
             InitializeComponent();
         }
 
@@ -65,8 +66,11 @@ namespace EfCoreStudentsManager
         }
 
         // Загрузка всех dataGrid по факту загрузки основного окна
+
         private async void Window_Loaded(object sender, RoutedEventArgs e)
         {
+            if (await CheckDapperFunctions()) MessageBox.Show("Функционал Dapper проверен!");
+
             _studentsCount = await _db.Students.CountAsync();
             await RefreshAllTables();
             await UpdateComboBox();
@@ -260,11 +264,11 @@ namespace EfCoreStudentsManager
             {
                 await sem.WaitAsync();
                 await _db.SaveChangesAsync();
+                _studentsCount = await _db.Students.CountAsync();
                 sem.Release();
             }
             catch (DbUpdateConcurrencyException ex) { MessageBox.Show("Ошибка! Данные были изменены с момента их загрузки в память!" + ex.Message); }
             catch (DbUpdateException ex) { MessageBox.Show("Ошибка сохранения в базу данных: " + ex.Message); }
-            _studentsCount = await _db.Students.CountAsync();
         }
 
         /// Отправка перечня студентов в DataGrid
@@ -868,6 +872,33 @@ namespace EfCoreStudentsManager
             if (_studentsPageIndex > _studentsCount / _studentsPerPage - 1) return;
             _studentsPageIndex++;
             await PutStudentsToDataGrid(_currentSearchMode);
+        }
+
+
+        private async Task<bool> CheckDapperFunctions()
+        {
+            var students = await studentsRepository.GetStudentsAsync();
+
+
+            var existingId = students.First().Id;
+            var student = await studentsRepository.GetStudentByIdAsync(existingId);
+
+
+            var existingName = student.Name;
+            var resultOfCreatingStudent = await studentsRepository.GetStudentsByNameAsync(existingName);
+
+
+            var lastId = await studentsRepository.AddStudentsAsync(student);
+
+            var qtyUpdated = await studentsRepository.UpdateStudentNameById(lastId, "Курт");
+
+            students = await studentsRepository.GetStudentsAsync();
+
+            var qtyDeleted = await studentsRepository.DeleteStudentById(lastId);
+
+            studentsRepository.Dispose();
+
+            return (qtyDeleted == 1) && (qtyUpdated == 1);
         }
     }
 }
